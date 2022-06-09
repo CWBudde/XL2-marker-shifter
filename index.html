@@ -1,0 +1,130 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<title>XL2 Marker Shifter</title>
+		<link rel="stylesheet" href="fonts/fonts.css">
+		<link rel="stylesheet" href="styles.css">
+		<link rel="shortcut icon" type="image/x-icon" href="gta.ico">
+		<style type="text/css">
+			body {
+				font-family: "Open Sans", sans-serif;
+			}
+
+			label {
+				display: block;
+				margin-bottom: 1em;
+			}
+
+			.main_page {
+				max-width: 1200px;
+				margin: 0 auto;
+			}
+
+			.page_header {
+				margin-bottom: 4em;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="main_page">
+			<div class="content_section">
+				<h1>XL2 Marker Shifter</h1>
+				<p>This tool allows to shift markers of an XL2 XML file by a given offset.</p>
+				
+				<label>
+					<span>Time shift in milliseconds:</span>
+					<input type="number" id="time-shift" name="time-shift" value="0">
+				</label>
+				
+				<label>
+					<span>Files to apply the given time shift:</span>
+					<input type="file" id="file-select" name="file-select" accept="application/xml">
+				</label>
+
+				<button id="process-file" disabled>Process file</button>
+
+			</div>
+
+		<script type="text/javascript">
+			let fileSelect = document.getElementById('file-select');			
+			let timeShiftSelect = document.getElementById('time-shift');
+			let buttonProcessFile = document.getElementById('process-file');
+
+			function alterValue(input) {
+
+				// eventually supply a Z to the string
+				if (!input.endsWith('Z')) {
+					input += 'Z';
+				}
+
+				let time = new Date(input);
+				var offset = parseInt(timeShiftSelect.value);
+				time.setMilliseconds(time.getMilliseconds() + offset);
+				let text = time.toISOString();
+
+				// convert from UTC to local time
+				if (text.endsWith('Z')) {
+					text = text.substring(0, text.length - 1);
+				}
+				if (text.endsWith('0')) {
+					text = text.substring(0, text.length - 1);
+				}
+				if (text.endsWith('0')) {
+					text = text.substring(0, text.length - 1);
+				}
+
+				return text;
+			}
+
+			function alterXML(xml, filename) {
+				let xmlDoc = new DOMParser().parseFromString(xml, 'text/xml');
+
+					let startMarkers = xmlDoc.getElementsByTagName('StartDate');
+					for (let i = 0; i < startMarkers.length; i++) {
+						let marker = startMarkers[i];
+
+						marker.textContent = alterValue(marker.textContent);
+					}
+
+					let endMarkers = xmlDoc.getElementsByTagName('EndDate');
+					for (let i = 0; i < endMarkers.length; i++) {
+						let marker = endMarkers[i];
+						marker.textContent = alterValue(marker.textContent);
+					}
+
+					let xmlString = new XMLSerializer().serializeToString(xmlDoc);
+					
+					// remove .xml from filename
+					filename = filename.substring(0, filename.length - 4);
+
+					// create download link
+					let blob = new Blob([xmlString], {type: 'text/xml'});
+					let url = URL.createObjectURL(blob);
+					let a = document.createElement('a');
+					a.href = url;					
+					a.download = filename + '-shifted.xml';
+					a.click();
+			}
+
+			fileSelect.addEventListener('change', function(e) {
+				let file = e.target.files[0];
+				document.getElementById('process-file').disabled = false;
+			});
+
+			if (fileSelect.files.length > 0) {
+				document.getElementById('process-file').disabled = false;
+			}
+
+			buttonProcessFile.addEventListener('click', function(e) {
+				let file = fileSelect.files[0];
+				let reader = new FileReader();
+				reader.onload = function(e) {
+					let xml = e.target.result;
+					alterXML(xml, file.name);
+				}
+				reader.readAsText(file);
+			});
+		</script>
+	</body>
+</html>
